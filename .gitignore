@@ -4,8 +4,13 @@ venv/
 # Ignore compiled Python files
 __pycache__/
 
+# Igorne nonce
+nonce/
+
+# Ignore the database
+database/
+
 # Ignore log files
 *.log
 
-# Ignore the database
-*.db
+

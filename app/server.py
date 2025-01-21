@@ -1,5 +1,10 @@
 import socket
-import chatappGUI
+import app.chatappGUI as chatappGUI
+import app.encryption as encryption
+from app.nonce_manager import NonceManager
+#I haven't started working on the server and the client yet.
+
+NONCE = NonceManager.get_nonce()#for the AES encryption
 
 server_socket= socket.socket()
 
