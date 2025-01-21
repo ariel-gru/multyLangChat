@@ -1,5 +1,5 @@
 import socket
-import pyqtry
+import chatappGUI
 
 server_socket= socket.socket()
 
