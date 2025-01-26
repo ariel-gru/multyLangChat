@@ -34,50 +34,51 @@ class ChatApp(QMainWindow):
         self.messages = []
 
 
-        # יצירת תצוגת הצ'אט
+        # chat layout
         self.chat_layout = QVBoxLayout()
         self.chat_layout.setAlignment(Qt.AlignTop)
 
-        # גלילה עבור תצוגת הצ'אט
+        # auto scroll
         self.scroll_area = QScrollArea()
         self.scroll_area_widget = QWidget()
         self.scroll_area_widget.setLayout(self.chat_layout)
         self.scroll_area.setWidget(self.scroll_area_widget)
         self.scroll_area.setWidgetResizable(True)
 
-        # שדה הקלט (שדה טקסט מרובה שורות)
+        #input-field
         self.input_field = QTextEdit()
         self.input_field.setPlaceholderText("Type a message...")
         self.input_field.setFixedHeight(50)
 
-        # כפתור שליחה
+        #send
         self.send_button = QPushButton("Send")
         self.language_button = QPushButton(preferd_language)
         
-        # יצירת תפריט עבור כפתור L
+        #send-func
         self.send_button.clicked.connect(self.send_message)
         self.language_button.setMenu(self.create_language_menu())
 
-        # Layout של הכפתורים
+        #but layouts
         buttons_layout = QVBoxLayout()
         buttons_layout.addWidget(self.send_button)
         buttons_layout.addWidget(self.language_button)
 
+        #buttons and input field
         lower_layout = QHBoxLayout()
         lower_layout.addWidget(self.input_field)
         lower_layout.addLayout(buttons_layout)
 
-        # פריסה ראשית
+        # main layout
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.scroll_area)
         main_layout.addLayout(lower_layout)
 
-        # הגדרת הפריסה לממשק הראשי
+
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
 
-        # הוספת מאזין למקש "Enter" בכל הווידג'טים
+        # enter
         self.input_field.installEventFilter(self)
         self.send_button.installEventFilter(self)
 
@@ -105,23 +106,20 @@ class ChatApp(QMainWindow):
     def send_message(self):
         message_content = self.input_field.toPlainText().strip()
         if message_content:
-            # יצירת אובייקט הודעה
+            # message obj
             message = ChatMessage(content=message_content)
-
-            # הצגת ההודעה בממשק
             self.display_message(message)
 
-            # ניקוי שדה הקלט
             self.input_field.clear()
-
-            # גלילה אוטומטית להודעה האחרונה
+            
+            #auto scroll
             self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
 
-            # לשים את הסמן בשדה ההקלדה לאחר שליחה
+            # putting the saman in the input field
             self.input_field.setFocus()
 
     def display_message(self, message):
-        # יצירת תווית להודעה
+        # message label
         message_label = QLabel(message.format())
         self.messages.append((message_label,None))
         time_label = QLabel(message.get_send_time())
@@ -142,7 +140,7 @@ class ChatApp(QMainWindow):
         """)
         message_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         
-        # Layout לכל הודעה
+        # message layout
         message_layout = QHBoxLayout()
         
         if message.get_sender() == "You":
@@ -153,16 +151,16 @@ class ChatApp(QMainWindow):
         message_layout.addWidget(message_label)
         message_layout.addWidget(time_label)
 
-        # Widget עבור כל הודעה
+        # message widget
         message_widget = QWidget()
         message_widget.setLayout(message_layout)
-        # הוספת ההודעה לתצוגת הצ'אט
+        
         self.chat_layout.addWidget(message_widget)
         
     
 
     def keyPressEvent(self, event):
-        # אם נלחץ Enter
+        # enter
         if event.key() == Qt.Key_Return:
             self.send_message()
 

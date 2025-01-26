@@ -27,8 +27,8 @@ class Cipher:
         return dh, pk
 
     @staticmethod
-    def get_dh_shared_key(dh_1, pk_2, lngth=32):
-        dh_shared = dh_1.generate_shared_key(pk_2)
+    def get_dh_shared_key(dh, pk, lngth=32):
+        dh_shared = dh.generate_shared_key(pk)
         return dh_shared[:lngth]
 
 
