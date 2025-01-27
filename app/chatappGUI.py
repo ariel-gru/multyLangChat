@@ -1,7 +1,7 @@
 from translator import Translator
 import sys
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QTextEdit, QPushButton, QWidget, QLabel, QScrollArea, QHBoxLayout, QMenu, QAction
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QTextEdit, QPushButton, QWidget, QLabel, QScrollArea, QHBoxLayout, QMenu, QAction, QDesktopWidget
 from datetime import datetime
 from languages import languages
 
@@ -29,9 +29,11 @@ class ChatApp(QMainWindow):
     def __init__(self,preferd_language="English"):
         super().__init__()
         self.setWindowTitle("Chat App")
-        self.resize(400, 600)
+        self.resize(400, 500)
         self.translator = Translator()
         self.messages = []
+        self.max_characters = 200
+        self.center_window()
 
 
         # chat layout
@@ -49,6 +51,10 @@ class ChatApp(QMainWindow):
         self.input_field = QTextEdit()
         self.input_field.setPlaceholderText("Type a message...")
         self.input_field.setFixedHeight(50)
+        self.input_field.textChanged.connect(self.check_character_limit)
+        
+
+        self.char_count_label = QLabel(f"{self.max_characters} characters remaining")
 
         #send
         self.send_button = QPushButton("Send")
@@ -67,6 +73,7 @@ class ChatApp(QMainWindow):
         lower_layout = QHBoxLayout()
         lower_layout.addWidget(self.input_field)
         lower_layout.addLayout(buttons_layout)
+        lower_layout.addWidget(self.char_count_label)
 
         # main layout
         main_layout = QVBoxLayout()
@@ -81,6 +88,29 @@ class ChatApp(QMainWindow):
         # enter
         self.input_field.installEventFilter(self)
         self.send_button.installEventFilter(self)
+
+    def center_window(self):
+        # קבלת מסגרת המסך
+        frame_geometry = self.frameGeometry()
+        # קבלת המרכז של המסך
+        screen_center = QDesktopWidget().availableGeometry().center()
+        # מיקום החלון במרכז המסך
+        frame_geometry.moveCenter(screen_center)
+        self.move(frame_geometry.topLeft())
+
+    def check_character_limit(self):  # פונקציה חדשה לבדיקה והגבלת מספר התווים
+        current_text = self.input_field.toPlainText()
+        remaining_characters = self.max_characters - len(current_text)
+        
+        # עדכון הטקסט בתווית
+        self.char_count_label.setText(f"{max(remaining_characters, 0)} characters remaining")  # עדכון מספר תווים שנותרו
+        
+        # אם חרגנו מהמגבלה, חתוך את הטקסט
+        if len(current_text) > self.max_characters:
+            self.input_field.setText(current_text[:self.max_characters])
+            cursor = self.input_field.textCursor()
+            cursor.movePosition(cursor.End)
+            self.input_field.setTextCursor(cursor)
 
     def create_language_menu(self):
         menu = QMenu(self.language_button)
@@ -102,6 +132,19 @@ class ChatApp(QMainWindow):
                     message[0].setText(translated_text)
                     self.messages[self.messages.index(message)] = (message[0],language)
                     
+    def check_character_limit(self):
+        current_text = self.input_field.toPlainText()
+        remaining_characters = self.max_characters - len(current_text)
+        
+        # עדכון הטקסט בתווית
+        self.char_count_label.setText(f"{max(remaining_characters, 0)} characters remaining")
+        
+        # אם חרגנו מהמגבלה, חתוך את הטקסט
+        if len(current_text) > self.max_characters:
+            self.input_field.setText(current_text[:self.max_characters])
+            cursor = self.input_field.textCursor()
+            cursor.movePosition(cursor.End)
+            self.input_field.setTextCursor(cursor)
 
     def send_message(self):
         message_content = self.input_field.toPlainText().strip()
