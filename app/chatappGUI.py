@@ -1,10 +1,75 @@
 from translator import Translator
 import sys
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QTextEdit, QPushButton, QWidget, QLabel, QScrollArea, QHBoxLayout, QMenu, QAction, QDesktopWidget
+from PyQt5.QtWidgets import QLineEdit, QMessageBox, QApplication, QMainWindow, QVBoxLayout, QTextEdit, QPushButton, QWidget, QLabel, QScrollArea, QHBoxLayout, QMenu, QAction, QDesktopWidget
 from datetime import datetime
 from languages import languages
 
+class LoginWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Login")
+        self.resize(300, 200)
+        self.center_window()
+
+        # יצירת הלייאוטים
+        self.main_layout = QVBoxLayout()
+        self.input_layout = QVBoxLayout()
+        self.buttons_layout = QHBoxLayout()
+
+        # יצירת אלמנטים של לוגין
+        self.username_label = QLabel("Username:")
+        self.username_input = QLineEdit(self)
+        self.username_input.setPlaceholderText("Enter your username")
+
+        self.password_label = QLabel("Password:")
+        self.password_input = QLineEdit(self)
+        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setPlaceholderText("Enter your password")
+
+        # כפתור כניסה
+        self.login_button = QPushButton("Login", self)
+        self.login_button.clicked.connect(self.login)
+
+        # כפתור רישום
+        self.register_button = QPushButton("Register", self)
+        self.register_button.clicked.connect(self.register)
+
+        # הוספת אלמנטים ללייאוטים
+        self.input_layout.addWidget(self.username_label)
+        self.input_layout.addWidget(self.username_input)
+        self.input_layout.addWidget(self.password_label)
+        self.input_layout.addWidget(self.password_input)
+
+        self.buttons_layout.addWidget(self.login_button)
+        self.buttons_layout.addWidget(self.register_button)
+
+        # הוספת הלייאוטים לחלון הראשי
+        self.main_layout.addLayout(self.input_layout)
+        self.main_layout.addLayout(self.buttons_layout)
+
+        # יצירת ווידג'ט וסט של הלייאוטים
+        container = QWidget()
+        container.setLayout(self.main_layout)
+        self.setCentralWidget(container)
+
+    def center_window(self):
+        frame_geometry = self.frameGeometry()
+        screen_center = QApplication.desktop().availableGeometry().center()
+        frame_geometry.moveCenter(screen_center)
+        self.move(frame_geometry.topLeft())
+
+    def login(self):
+        # פונקציה להיכנס (יש להוסיף את הלוגיקה שלך כאן)
+        username = self.username_input.text()
+        password = self.password_input.text()
+        print(f"Logging in with {username} and {password}")
+
+    def register(self):
+        # פונקציה להרשמה (יש להוסיף את הלוגיקה שלך כאן)
+        print("Redirecting to registration page...")
 
 class ChatMessage:
     def __init__(self, content, sender="You"):
@@ -132,20 +197,6 @@ class ChatApp(QMainWindow):
                     message[0].setText(translated_text)
                     self.messages[self.messages.index(message)] = (message[0],language)
                     
-    def check_character_limit(self):
-        current_text = self.input_field.toPlainText()
-        remaining_characters = self.max_characters - len(current_text)
-        
-        # עדכון הטקסט בתווית
-        self.char_count_label.setText(f"{max(remaining_characters, 0)} characters remaining")
-        
-        # אם חרגנו מהמגבלה, חתוך את הטקסט
-        if len(current_text) > self.max_characters:
-            self.input_field.setText(current_text[:self.max_characters])
-            cursor = self.input_field.textCursor()
-            cursor.movePosition(cursor.End)
-            self.input_field.setTextCursor(cursor)
-
     def send_message(self):
         message_content = self.input_field.toPlainText().strip()
         if message_content:
@@ -217,6 +268,6 @@ class ChatApp(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = ChatApp()
-    window.show()
+    login_window = LoginWindow()
+    login_window.show()
     sys.exit(app.exec_())
