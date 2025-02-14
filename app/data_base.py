@@ -1,7 +1,7 @@
 import sqlite3
 import os
 import hashlib
-from app.passwords_encryption import HashPasswords
+from passwords_encryption import HashPasswords
 
 
 class ChatAppDB:

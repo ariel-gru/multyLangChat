@@ -2,7 +2,7 @@
 from Crypto.Cipher import AES
 #pip install py-diffie-hellman
 from diffiehellman import DiffieHellman
-from app.nonce_manager import NonceManager
+from nonce_manager import NonceManager
 
 
 class Cipher:

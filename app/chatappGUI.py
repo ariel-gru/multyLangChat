@@ -1,9 +1,101 @@
 from translator import Translator
 import sys
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QTextEdit, QPushButton, QWidget, QLabel, QScrollArea, QHBoxLayout, QMenu, QAction
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QTextEdit, QPushButton, QWidget, QLabel, QScrollArea, QHBoxLayout, QMenu, QAction , QLineEdit,QMessageBox
 from datetime import datetime
 from languages import languages
+import client
+import json
+
+class LoginWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+
+        self.setWindowTitle("Login")
+        self.resize(300, 200)
+        self.center_window()
+        self.client=client.client()
+
+        # יצירת הלייאוטים
+        self.main_layout = QVBoxLayout()
+        self.input_layout = QVBoxLayout()
+        self.buttons_layout = QHBoxLayout()
+
+        # יצירת אלמנטים של לוגין
+        self.username_label = QLabel("Username:")
+        self.username_input = QLineEdit(self)
+        self.username_input.setPlaceholderText("Enter your username")
+
+        self.password_label = QLabel("Password:")
+        self.password_input = QLineEdit(self)
+        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setPlaceholderText("Enter your password")
+
+        # כפתור כניסה
+        self.login_button = QPushButton("Login", self)
+        self.login_button.clicked.connect(self.login)
+
+        # כפתור רישום
+        self.register_button = QPushButton("Register", self)
+        self.register_button.clicked.connect(self.register)
+
+        # הוספת אלמנטים ללייאוטים
+        self.input_layout.addWidget(self.username_label)
+        self.input_layout.addWidget(self.username_input)
+        self.input_layout.addWidget(self.password_label)
+        self.input_layout.addWidget(self.password_input)
+
+        self.buttons_layout.addWidget(self.login_button)
+        self.buttons_layout.addWidget(self.register_button)
+
+        # הוספת הלייאוטים לחלון הראשי
+        self.main_layout.addLayout(self.input_layout)
+        self.main_layout.addLayout(self.buttons_layout)
+
+        # יצירת ווידג'ט וסט של הלייאוטים
+        container = QWidget()
+        container.setLayout(self.main_layout)
+        self.setCentralWidget(container)
+
+    def center_window(self):
+        frame_geometry = self.frameGeometry()
+        screen_center = QApplication.desktop().availableGeometry().center()
+        frame_geometry.moveCenter(screen_center)
+        self.move(frame_geometry.topLeft())
+
+    def login(self):
+        # פונקציה להיכנס (יש להוסיף את הלוגיקה שלך כאן)
+        username = self.username_input.text()
+        password = self.password_input.text()
+        if not username and not password:
+            self.show_error("Both fields are required!", "Please enter your username and password.")
+        elif not username:
+            self.show_error("Username field is empty!", "Please enter your username.")
+        elif not password:
+            self.show_error("Password field is empty!", "Please enter your password.")
+        else:
+            data = {
+                "username":username,
+                "password":password,
+                "operation":"login"
+            }
+            json_data = json.dumps(data)
+            if self.client.login(json_data):
+                chat=ChatApp("English",username)
+                chat.show()
+                self.close()
+
+    def register(self):
+        # פונקציה להרשמה (יש להוסיף את הלוגיקה שלך כאן)
+        print("Redirecting to registration page...")
+    
+    def show_error(self, title, message):
+        # הצגת הודעת שגיאה באמצעות QMessageBox
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        msg.exec_()
 
 
 class ChatMessage:
@@ -26,7 +118,7 @@ class ChatMessage:
 
 
 class ChatApp(QMainWindow):
-    def __init__(self,preferd_language="English"):
+    def __init__(self,preferd_language="English",username=""):
         super().__init__()
         self.setWindowTitle("Chat App")
         self.resize(400, 600)
@@ -174,6 +266,6 @@ class ChatApp(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = ChatApp()
-    window.show()
+    login_window = LoginWindow()
+    login_window.show()
     sys.exit(app.exec_())
