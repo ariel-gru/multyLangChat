@@ -1,7 +1,7 @@
 import sqlite3
 import os
 import hashlib
-from app.passwords_encryption import HashPasswords
+from passwords_encryption import HashPasswords
 
 
 class ChatAppDB:
@@ -30,17 +30,6 @@ class ChatAppDB:
             preferred_language TEXT DEFAULT 'en'
         )
         """)
-
-        self.cursor.execute("""
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            sender_id INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (sender_id) REFERENCES users (id)
-        )
-        """)
-
         self.conn.commit()
 
     def save_user(self, username, password):
@@ -69,24 +58,6 @@ class ChatAppDB:
             if HashPasswords.check_password(salt, stored_hash, password):
                 return True
         return False
-
-    def send_message(self, sender_id, content):
-       
-        self.cursor.execute("""
-        INSERT INTO messages (sender_id, content)
-        VALUES (?, ?)
-        """, (sender_id, content))
-        self.conn.commit()
-
-    def get_messages(self):
-      
-        self.cursor.execute("""
-        SELECT u.username, m.content, m.timestamp
-        FROM messages m
-        JOIN users u ON m.sender_id = u.id
-        ORDER BY m.timestamp
-        """)
-        return self.cursor.fetchall()
 
     def change_language(self, user_id, new_language):
         
@@ -121,12 +92,5 @@ if __name__ == "__main__":
     print(db.check_user("user1222", "secure_password"))
     print(db.get_user_id("user1222"))
     print(db.check_user("user1223", "wrong_password"))
-
-    db.send_message(1, "Hello, this is the first message!")
-    db.send_message(2, "Hi, I'm responding to your message.")
-
-    messages = db.get_messages()
-    for message in messages:
-        print(message[1])
-
+    
     db.close()

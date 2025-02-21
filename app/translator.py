@@ -32,7 +32,7 @@ class Translator:
         Translate the given text to the target language using Google Translate.
         """
         if len(text_to_translate) > 1600:
-            self.split_text_to_chunks(text_to_translate)
+            self.split_translate(text_to_translate,target_language)
         #URL matching
         text_to_translate = urllib.parse.quote(text_to_translate)
         
