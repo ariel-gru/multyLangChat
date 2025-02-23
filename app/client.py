@@ -11,7 +11,7 @@ NONCE = NonceManager.get_nonce()#for the AES encryption
 class client:
     def __init__(self):
         self.client_socket = socket.socket()
-        self.client_socket.connect(("127.0.0.1", 7000))
+        self.client_socket.connect(("10.42.57.33", 7000))
         
         
         dh, public_key = Cipher.get_dh_public_key()
@@ -31,6 +31,8 @@ class client:
             self.client_socket.send(encrypted_message)
             encryptd_answer = self.client_socket.recv(1024)
             answer = self.cipher.aes_decrypt(encryptd_answer)
+            if answer != 'you are connected':
+                return False
         return True
 
 

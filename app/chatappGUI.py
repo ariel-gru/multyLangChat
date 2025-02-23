@@ -64,7 +64,6 @@ class LoginWindow(QMainWindow):
         self.move(frame_geometry.topLeft())
 
     def login(self):
-        # פונקציה להיכנס (יש להוסיף את הלוגיקה שלך כאן)
         username = self.username_input.text()
         password = self.password_input.text()
         if not username and not password:
@@ -75,16 +74,17 @@ class LoginWindow(QMainWindow):
             self.show_error("Password field is empty!", "Please enter your password.")
         else:
             data = {
-                "username":username,
-                "password":password,
-                "operation":"login"
-            }
+                    "username":username,
+                    "password":password,
+                    "operation":"login"
+                }
             json_data = json.dumps(data)
             if self.client.login(json_data):
                 chat=ChatApp("English",username)
                 chat.show()
                 self.close()
-
+            else:
+                self.show_error("Cant log in","Wrong username or password")
     def register(self):
         # פונקציה להרשמה (יש להוסיף את הלוגיקה שלך כאן)
         print("Redirecting to registration page...")
