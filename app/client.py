@@ -70,7 +70,7 @@ class client:
     def snd_msg(self,message,username):
             msg=message
             print(msg)
-            msg=username+":"+msg
+            msg=username+":"+chr(0)+msg
             encrypted_msg = self.cipher.aes_encrypt(msg.encode())
             self.client_socket.send(encrypted_msg)
 

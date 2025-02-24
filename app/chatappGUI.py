@@ -241,9 +241,11 @@ class ChatApp(QMainWindow):
     
     def recive_message(self):
         def handle_message(message):
+            print(message)
             sender = message.split(":")[0]
-            message = message.split(":")[1]
+            message = message.split(":",1)[1]
             print(sender)
+            print(message)
             message=self.translator.translate(message,languages[self.preferd_language])
             chat_message = ChatMessage(message, sender)
             # צריך להריץ את הצגת ההודעה בthread הראשי של Qt
@@ -270,8 +272,8 @@ class ChatApp(QMainWindow):
         for  message in self.messages:
                 if message[1] != language:
                     print(message[0].text())
-                    sender = message[0].text().split(":")[0] if message[2] == 1 else None
-                    translated_text=self.translator.translate(message[0].text().split(":")[1],languages[language]) if sender else self.translator.translate(message[0].text(),languages[language]) 
+                    sender = message[0].text().split(":",1)[0] if message[2] == 1 else None
+                    translated_text=self.translator.translate(message[0].text().split(":",1)[1],languages[language]) if sender else self.translator.translate(message[0].text(),languages[language]) 
                     if message[2] == 1:
                         message[0].setText(sender+":"+translated_text)
                         self.messages[self.messages.index(message)] = (message[0],language,1)
