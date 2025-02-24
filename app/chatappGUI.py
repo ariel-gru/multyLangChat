@@ -1,11 +1,13 @@
 from translator import Translator
 import sys
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QTextEdit, QPushButton, QWidget, QLabel, QScrollArea, QHBoxLayout, QMenu, QAction , QLineEdit,QMessageBox
 from datetime import datetime
 from languages import languages
 import client
 import json
+import threading
+import asyncio
 
 class LoginWindow(QMainWindow):
     def __init__(self):
@@ -15,6 +17,8 @@ class LoginWindow(QMainWindow):
         self.resize(300, 200)
         self.center_window()
         self.client=client.client()
+        self.language=None
+        self.username=""
 
         # יצירת הלייאוטים
         self.main_layout = QVBoxLayout()
@@ -52,11 +56,42 @@ class LoginWindow(QMainWindow):
         self.main_layout.addLayout(self.input_layout)
         self.main_layout.addLayout(self.buttons_layout)
 
+        self.language_button = QPushButton("Choose your language")
+        self.language_button.setMenu(self.create_language_menu())
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save)
+
+        self.save_layout =QVBoxLayout()
+        self.save_layout.addWidget(self.language_button)
+        self.save_layout.addWidget(self.save_button)
+
         # יצירת ווידג'ט וסט של הלייאוטים
         container = QWidget()
         container.setLayout(self.main_layout)
         self.setCentralWidget(container)
-
+    
+    def save(self):
+        if self.language:
+            self.client.change_lang(self.language)
+            chat=ChatApp(self.username,self.client,self.language)
+            chat.show()
+            self.close()
+        else:
+            self.show_error("You need to choose a language", "Please choose language.")
+    
+    def create_language_menu(self):
+        menu = QMenu(self.language_button)
+        for language in languages:
+            action = QAction(language, self)
+            action.triggered.connect(lambda checked, lang=language: self.select_language(lang))
+            menu.addAction(action)
+        return menu
+    
+    def select_language(self, language):
+        self.language = language
+        self.language_button.setText(language)
+    
     def center_window(self):
         frame_geometry = self.frameGeometry()
         screen_center = QApplication.desktop().availableGeometry().center()
@@ -65,6 +100,7 @@ class LoginWindow(QMainWindow):
 
     def login(self):
         username = self.username_input.text()
+        self.username = username
         password = self.password_input.text()
         if not username and not password:
             self.show_error("Both fields are required!", "Please enter your username and password.")
@@ -79,15 +115,38 @@ class LoginWindow(QMainWindow):
                     "operation":"login"
                 }
             json_data = json.dumps(data)
-            if self.client.login(json_data):
-                chat=ChatApp("English",username)
+            connected , language = self.client.login(json_data)
+            if connected:
+                self.language = language
+                chat=ChatApp(self.username,self.client,self.language)
                 chat.show()
                 self.close()
+               
             else:
                 self.show_error("Cant log in","Wrong username or password")
+        
     def register(self):
-        # פונקציה להרשמה (יש להוסיף את הלוגיקה שלך כאן)
-        print("Redirecting to registration page...")
+        username = self.username_input.text()
+        password = self.password_input.text()
+        if not username and not password:
+            self.show_error("Both fields are required!", "Please enter your username and password.")
+        elif not username:
+            self.show_error("Username field is empty!", "Please enter your username.")
+        elif not password:
+            self.show_error("Password field is empty!", "Please enter your password.")
+        else:
+            data = {
+                    "username":username,
+                    "password":password,
+                    "operation":"register"
+                }
+            json_data = json.dumps(data)
+            if self.client.register(json_data):
+                container = QWidget()
+                container.setLayout(self.save_layout)
+                self.setCentralWidget(container)
+            else:
+                self.show_error("Username already exists","choose another username")
     
     def show_error(self, title, message):
         # הצגת הודעת שגיאה באמצעות QMessageBox
@@ -118,12 +177,15 @@ class ChatMessage:
 
 
 class ChatApp(QMainWindow):
-    def __init__(self,preferd_language="English",username=""):
+    def __init__(self,username,client:client,preferd_language="English"):
         super().__init__()
         self.setWindowTitle("Chat App")
         self.resize(400, 600)
         self.translator = Translator()
         self.messages = []
+        self.username=username
+        self.preferd_language=preferd_language
+        self.client = client
 
 
         # chat layout
@@ -174,46 +236,72 @@ class ChatApp(QMainWindow):
         self.input_field.installEventFilter(self)
         self.send_button.installEventFilter(self)
 
+        threading.Thread(target=self.recive_message, daemon=True).start()
+    
+    
+    def recive_message(self):
+        def handle_message(message):
+            sender = message.split(":")[0]
+            message = message.split(":")[1]
+            print(sender)
+            message=self.translator.translate(message,languages[self.preferd_language])
+            chat_message = ChatMessage(message, sender)
+            # צריך להריץ את הצגת ההודעה בthread הראשי של Qt
+            self.display_message_safe(chat_message)
+        
+        self.client.get_msg(handle_message)
+
     def create_language_menu(self):
         menu = QMenu(self.language_button)
         for language in languages:
             action = QAction(language, self)
             action.triggered.connect(lambda checked, lang=language: self.select_language(lang))
             menu.addAction(action)
+        self.language_button.setText(self.preferd_language)
         return menu
 
     def select_language(self, language):
-        self.translate_all_messages(language)
         self.language_button.setText(language)
+        self.preferd_language = language
+        self.translate_all_messages(language)
+        
     
     def translate_all_messages(self,language):
         for  message in self.messages:
                 if message[1] != language:
                     print(message[0].text())
-                    translated_text=self.translator.translate(message[0].text(),languages[language])
-                    message[0].setText(translated_text)
-                    self.messages[self.messages.index(message)] = (message[0],language)
+                    sender = message[0].text().split(":")[0] if message[2] == 1 else None
+                    translated_text=self.translator.translate(message[0].text().split(":")[1],languages[language]) if sender else self.translator.translate(message[0].text(),languages[language]) 
+                    if message[2] == 1:
+                        message[0].setText(sender+":"+translated_text)
+                        self.messages[self.messages.index(message)] = (message[0],language,1)
+                    else:
+                        message[0].setText(translated_text)
+                        self.messages[self.messages.index(message)] = (message[0],language,0)
                     
-
+    
     def send_message(self):
         message_content = self.input_field.toPlainText().strip()
         if message_content:
-            # message obj
             message = ChatMessage(content=message_content)
-            self.display_message(message)
-
+            self.display_message(message,0)
+            self.client.snd_msg(message_content, self.username)  # שליחה לשרת
             self.input_field.clear()
-            
-            #auto scroll
-            self.scroll_area.verticalScrollBar().setValue(self.scroll_area.verticalScrollBar().maximum())
 
-            # putting the saman in the input field
-            self.input_field.setFocus()
-
-    def display_message(self, message):
+    def display_message_safe(self, message):
+        # Qt לא מאפשר עדכון UI מthread משני
+        # לכן נשתמש ב-invokeMethod כדי לעדכן את ה-UI בthread הראשי
+        from PyQt5.QtCore import QMetaObject, Qt, Q_ARG, pyqtSlot
+        QMetaObject.invokeMethod(self, "display_message", 
+                            Qt.QueuedConnection,
+                            Q_ARG(ChatMessage, message),
+                            Q_ARG(int,1))
+    
+    @pyqtSlot(ChatMessage,int)
+    def display_message(self, message,sender):
         # message label
         message_label = QLabel(message.format())
-        self.messages.append((message_label,None))
+        self.messages.append((message_label,None,sender))
         time_label = QLabel(message.get_send_time())
         color ="#4ee565" if message.get_sender() == "You" else "#afafaf"
        

@@ -2,12 +2,11 @@ import socket
 import threading
 import chatappGUI as chatappGUI
 from encryption import Cipher
-from nonce_manager import NonceManager
+from nonce import NONCE
 import data_base
 import json
 #I haven't started working on the server and the client yet.
 
-NONCE = NonceManager.get_nonce()#for the AES encryption
 class server:
     def __init__(self):
         self.server_socket = socket.socket()
@@ -48,11 +47,49 @@ class server:
                     if DB.check_user(username,password):
                         connected =True
                         print("logged in")
-        encrypted_answer=cipher.aes_encrypt('you are connected'.encode())
-        client.send(encrypted_answer)
+                        encrypted_answer=cipher.aes_encrypt(f'language:{DB.get_user_language(username)}'.encode())
+                    else:
+                        encrypted_answer=cipher.aes_encrypt('you are not connected'.encode())
+                    client.send(encrypted_answer)
+                
+                
+                if opertation == "register":
+                        print(1)
+                        if DB.save_user(username,password):
+                            print(12)
+                            connected =True
+                            print("logged in")
+                            encrypted_answer=cipher.aes_encrypt('you are connected'.encode())
+                            client.send(encrypted_answer)
+                            wating_for_lang = True
+                            while wating_for_lang:
+                                data = client.recv(1024)
+                                data = cipher.aes_decrypt(data)
+                                DB.change_language(username,data.split(":")[1])
+                                wating_for_lang = False
+                        else:
+                            encrypted_answer=cipher.aes_encrypt('Username already exists'.encode())
+                            client.send(encrypted_answer)
+                        
+                    
 
-        
-        
+
+        self.client_list.append((client,address,username,shared_key))
+        recv = True
+        while recv:
+            data = client.recv(1024)
+            data = cipher.aes_decrypt(data)
+            print(data)
+            for i in self.client_list:
+                if username != i[2]:
+                    print("sending:"+data)
+                    client_public_key = Cipher(i[3], NONCE)
+                    encrypted_msg_by_specific_client_key=client_public_key.aes_encrypt(data.encode())
+                    i[0].send(encrypted_msg_by_specific_client_key)
+
+            
+            
+
 
         client.close()
         self.server_socket.close()

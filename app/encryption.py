@@ -2,7 +2,7 @@
 from Crypto.Cipher import AES
 #pip install py-diffie-hellman
 from diffiehellman import DiffieHellman
-from nonce_manager import NonceManager
+from nonce import NONCE
 
 
 class Cipher:
@@ -36,7 +36,6 @@ if __name__ == "__main__":
 
     text = b"testing: hello world"
     PUBLIC_KEY = b"it is my secret password"
-    NONCE =  NonceManager.get_nonce()
     print("text before:", text)
 
     c1 = Cipher(PUBLIC_KEY, NONCE)

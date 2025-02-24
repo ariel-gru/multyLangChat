@@ -2,16 +2,15 @@ import socket
 import threading
 import chatappGUI
 from encryption import Cipher
-from translator import Translator
-from nonce_manager import NonceManager
+from nonce import NONCE
 #I haven't started working on the server and the client yet.
 
-NONCE = NonceManager.get_nonce()#for the AES encryption
+
 
 class client:
     def __init__(self):
         self.client_socket = socket.socket()
-        self.client_socket.connect(("10.42.57.33", 7000))
+        self.client_socket.connect(("127.0.0.1", 7000))
         
         
         dh, public_key = Cipher.get_dh_public_key()
@@ -24,6 +23,21 @@ class client:
     
     def login(self,data):
         answer =''
+        while 'language:' not in answer:
+
+            encrypted_message = self.cipher.aes_encrypt(data.encode())
+
+            self.client_socket.send(encrypted_message)
+            encryptd_answer = self.client_socket.recv(1024)
+            answer = self.cipher.aes_decrypt(encryptd_answer)
+            if 'language:' not in answer:
+                return False , ""
+        print(answer.split(':')[1])
+        print(answer)
+        return True,answer.split(':')[1]
+    
+    def register(self,data):
+        answer =''
         while answer !='you are connected':
 
             encrypted_message = self.cipher.aes_encrypt(data.encode())
@@ -33,7 +47,32 @@ class client:
             answer = self.cipher.aes_decrypt(encryptd_answer)
             if answer != 'you are connected':
                 return False
+        print(3)
         return True
+    def get_msg(self, message_callback):
+        try:
+            while True:
+                data = self.client_socket.recv(1024)
+                if not data:
+                    break
+                msg = self.cipher.aes_decrypt(data)
+                if msg:
+                    message_callback(msg)
+        except Exception as e:
+            print(f"Connection lost: {e}")
+        
+    def change_lang(self,language):
+        msg = "change language:"+language
+        encrypted_msg = self.cipher.aes_encrypt(msg.encode())
+        self.client_socket.send(encrypted_msg)
+
+    
+    def snd_msg(self,message,username):
+            msg=message
+            print(msg)
+            msg=username+":"+msg
+            encrypted_msg = self.cipher.aes_encrypt(msg.encode())
+            self.client_socket.send(encrypted_msg)
 
 
 

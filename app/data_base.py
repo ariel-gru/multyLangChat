@@ -1,6 +1,5 @@
 import sqlite3
 import os
-import hashlib
 from passwords_encryption import HashPasswords
 
 
@@ -27,25 +26,25 @@ class ChatAppDB:
             username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             salt TEXT NOT NULL,
-            preferred_language TEXT DEFAULT 'en'
+            preferred_language TEXT DEFAULT 'English'
         )
         """)
         self.conn.commit()
 
-    def save_user(self, username, password):
+    def save_user(self, username, password , preferred_language='English'):
        
         salt, encrypted_password = HashPasswords.encrypt_password(password)
         try:
             self.cursor.execute("""
-            INSERT INTO users (username, password_hash, salt)
-            VALUES (?, ?, ?)
-            """, (username, encrypted_password, salt))
+            INSERT INTO users (username, password_hash, salt,preferred_language)
+            VALUES (?, ?, ?,?)
+            """, (username, encrypted_password, salt,preferred_language))
             self.conn.commit()
             print(f"User '{username}' saved successfully!")
-            return f"User '{username}' saved successfully!"
+            return True
         except sqlite3.IntegrityError:
             print(f"Error: Username '{username}' already exists.")
-            return f"Error: Username '{username}' already exists."
+            return False
 
     def check_user(self, username, password):
        
@@ -59,18 +58,27 @@ class ChatAppDB:
                 return True
         return False
 
-    def change_language(self, user_id, new_language):
+    def change_language(self, username, new_language):
         
         self.cursor.execute("""
-        UPDATE users SET preferred_language = ? WHERE id = ?
-        """, (new_language, user_id))
+        UPDATE users SET preferred_language = ? WHERE username = ?
+        """, (new_language, username))
         self.conn.commit()
-        print(f"Preferred language for user with ID '{user_id}' updated to '{new_language}'.")
+        print(f"Preferred language for user with username '{username}' updated to '{new_language}'.")
     
     def get_user_id(self, username):
         
         self.cursor.execute("""
         SELECT id FROM users WHERE username = ?
+        """, (username,))
+        result = self.cursor.fetchone()
+        if result:
+            return result[0]  #בוחר את הראשון כי tuple
+        return None  
+    def get_user_language(self, username):
+        
+        self.cursor.execute("""
+        SELECT preferred_language FROM users WHERE username = ?
         """, (username,))
         result = self.cursor.fetchone()
         if result:
@@ -91,6 +99,9 @@ if __name__ == "__main__":
 
     print(db.check_user("user1222", "secure_password"))
     print(db.get_user_id("user1222"))
+    print(db.get_user_language("user1222"))
+    db.change_language("user1222","Hebrew")
+    print(db.get_user_language("user1222"))
     print(db.check_user("user1223", "wrong_password"))
     
     db.close()
