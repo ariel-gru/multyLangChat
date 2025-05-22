@@ -142,6 +142,7 @@ class LoginWindow(QMainWindow):
                 }
             json_data = json.dumps(data)
             if self.client.register(json_data):
+                self.username = username
                 container = QWidget()
                 container.setLayout(self.save_layout)
                 self.setCentralWidget(container)
