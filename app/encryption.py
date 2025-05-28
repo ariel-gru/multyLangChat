@@ -7,29 +7,44 @@ from nonce import NONCE
 
 class Cipher:
     def __init__(self, key, nonce):
-        self.key = key
-        self.nonce = nonce
+        """
+        Initializes the Cipher object with an encryption key and a nonce.
+        """
+        self.key = key # AES encryption key
+        self.nonce = nonce # Nonce value for AES (must match between encryption and decryption)
 
     def aes_encrypt(self, txt):
-        cipher = AES.new(self.key, AES.MODE_EAX,  nonce=self.nonce)
-        ciphertext, tag = cipher.encrypt_and_digest(txt)
-        return ciphertext
+        """
+        Encrypts the given text using AES encryption.
+        """
+        cipher = AES.new(self.key, AES.MODE_EAX,  nonce=self.nonce) # Initialize AES cipher in EAX mode
+        ciphertext, tag = cipher.encrypt_and_digest(txt) # Encrypt the plaintext and generate authentication tag
+        return ciphertext # Return the ciphertext
 
     def aes_decrypt(self, cipher_text):
-        cipher = AES.new(self.key, AES.MODE_EAX, nonce=self.nonce)
-        msg = cipher.decrypt(cipher_text)
-        return msg.decode('utf-8')
+        """
+        Decrypts the given ciphertext using AES decryption.
+        """
+        cipher = AES.new(self.key, AES.MODE_EAX, nonce=self.nonce)  # Initialize AES cipher with same nonce
+        msg = cipher.decrypt(cipher_text) # Decrypt the ciphertext
+        return msg.decode('utf-8') # Return the decoded plaintext
 
     @staticmethod
     def get_dh_public_key():
-        dh = DiffieHellman(group=14, key_bits=540)
-        pk = dh.get_public_key()
-        return dh, pk
+        """
+        Generates a Diffie-Hellman public key.
+        """
+        dh = DiffieHellman(group=14, key_bits=540) # Create a Diffie-Hellman object with group 14 and 540-bit key
+        pk = dh.get_public_key()  # Generate the public key
+        return dh, pk # Return the DH object and its public key
 
     @staticmethod
-    def get_dh_shared_key(dh, pk, lngth=32):
-        dh_shared = dh.generate_shared_key(pk)
-        return dh_shared[:lngth]
+    def get_dh_shared_key(dh, pk, lngth=32): 
+        """
+        Generates a shared secret key using Diffie-Hellman key exchange.
+        """
+        dh_shared = dh.generate_shared_key(pk) # Generate shared key using the other party's public key
+        return dh_shared[:lngth] # Return the first 'lngth' bytes of the shared key
 
 
 if __name__ == "__main__":

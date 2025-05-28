@@ -5,10 +5,13 @@ from encryption import Cipher
 from nonce import NONCE
 import data_base
 import json
-#I haven't started working on the server and the client yet.
 
 class server:
     def __init__(self):
+        '''
+        Initializes the server, binds it to an address and port, and starts listening for connections.
+        For each connection, it spawns a new thread to handle client communication.
+        '''
         self.server_socket = socket.socket()
         self.server_socket.bind(("0.0.0.0", 7000))
         self.server_socket.listen(100)
@@ -22,9 +25,12 @@ class server:
         
     def start_server(self,client,address):
         
+        '''Handles key exchange, receiving messages from one client,
+          and forwarding them encrypted to all others'''
+        
         dh, public_key = Cipher.get_dh_public_key()
-        client.send(public_key)  # שליחת המפתח הפומבי ללקוח
-        client_public_key = client.recv(1024)  # קבלת המפתח הפומבי של הלקוח
+        client.send(public_key)  
+        client_public_key = client.recv(1024)  
         shared_key = Cipher.get_dh_shared_key(dh,  client_public_key)
         print("shared key:", shared_key)
         cipher = Cipher(shared_key, NONCE)
@@ -77,15 +83,16 @@ class server:
         self.client_list.append((client,address,username,shared_key))
         recv = True
         while recv:
-            data = client.recv(1024)
-            data = cipher.aes_decrypt(data)
+            data = client.recv(1024) # Receive encrypted message from client
+            data = cipher.aes_decrypt(data) # Decrypt message using shared key
             print(data)
-            for i in self.client_list:
-                if username != i[2]:
+            
+            for i in self.client_list:# Send the message to all other clients
+                if username != i[2]:# Avoid sending the message back to the sender
                     print("sending:"+data)
-                    client_public_key = Cipher(i[3], NONCE)
-                    encrypted_msg_by_specific_client_key=client_public_key.aes_encrypt(data.encode())
-                    i[0].send(encrypted_msg_by_specific_client_key)
+                    client_public_key = Cipher(i[3], NONCE)# Create Cipher with recipient's key
+                    encrypted_msg_by_specific_client_key=client_public_key.aes_encrypt(data.encode())# Encrypt message for recipient
+                    i[0].send(encrypted_msg_by_specific_client_key)# Send encrypted message to recipient
 
             
             

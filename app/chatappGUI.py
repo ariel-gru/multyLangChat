@@ -1,21 +1,26 @@
 from translator import Translator
 import sys
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import Qt, pyqtSlot,QMetaObject,Q_ARG
 from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QTextEdit, QPushButton, QWidget, QLabel, QScrollArea, QHBoxLayout, QMenu, QAction , QLineEdit,QMessageBox
+from PyQt5.QtGui import QIcon
 from datetime import datetime
 from languages import languages
 import client
 import json
 import threading
-import asyncio
+
 
 class LoginWindow(QMainWindow):
     def __init__(self):
+        """
+        Initializes the LoginWindow, sets up the UI for user login and registration.
+        """
         super().__init__()
 
         self.setWindowTitle("Login")
         self.resize(300, 200)
         self.center_window()
+        self.setWindowIcon(QIcon("icons/chat_icon.ico"))
         self.client=client.client()
         self.language=None
         self.username=""
@@ -72,15 +77,21 @@ class LoginWindow(QMainWindow):
         self.setCentralWidget(container)
     
     def save(self):
+        """
+        Triggers when clicking on save. Saves the selected language and opens the chat window.
+        """
         if self.language:
             self.client.change_lang(self.language)
             chat=ChatApp(self.username,self.client,self.language)
             chat.show()
             self.close()
         else:
-            self.show_error("You need to choose a language", "Please choose language.")
+            self.show_error("You need to choose a language", "Please choose  a language.")
     
     def create_language_menu(self):
+        """
+        Creates a menu for selecting the user's preferred language.
+        """
         menu = QMenu(self.language_button)
         for language in languages:
             action = QAction(language, self)
@@ -89,16 +100,25 @@ class LoginWindow(QMainWindow):
         return menu
     
     def select_language(self, language):
+        """
+        Sets the selected language.
+        """
         self.language = language
         self.language_button.setText(language)
     
     def center_window(self):
+        """
+        Centers the window on the screen.
+        """
         frame_geometry = self.frameGeometry()
         screen_center = QApplication.desktop().availableGeometry().center()
         frame_geometry.moveCenter(screen_center)
         self.move(frame_geometry.topLeft())
 
     def login(self):
+        """
+        Handles user login.
+        """
         username = self.username_input.text()
         self.username = username
         password = self.password_input.text()
@@ -126,6 +146,9 @@ class LoginWindow(QMainWindow):
                 self.show_error("Cant log in","Wrong username or password")
         
     def register(self):
+        """
+        Handles user registration.
+        """
         username = self.username_input.text()
         password = self.password_input.text()
         if not username and not password:
@@ -150,7 +173,9 @@ class LoginWindow(QMainWindow):
                 self.show_error("Username already exists","choose another username")
     
     def show_error(self, title, message):
-        # הצגת הודעת שגיאה באמצעות QMessageBox
+        """
+        Displays an error in a message box.
+        """
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
         msg.setWindowTitle(title)
@@ -160,28 +185,47 @@ class LoginWindow(QMainWindow):
 
 class ChatMessage:
     def __init__(self, content, sender="You"):
+        """
+        Initializes a ChatMessage object.
+        """
         self.content = content
         self.sender = sender
         self.timestamp = self.get_send_time()
     
     def get_sender(self):
+        """
+        Returns the sender of the message.
+        """
         return self.sender
     
     def get_content(self):
+        """
+        Returns the content of the message.
+        """
         return self.content
     
     def get_send_time(self):
+        """
+        Returns the time when the message was sent.
+        """
         return datetime.now().strftime("%H:%M")
 
     def format(self):
+        """
+        Formats the message for display.
+        """
         return f"{self.content}" if self.sender == "You" else f"{self.sender}: {self.content}"
 
 
 class ChatApp(QMainWindow):
     def __init__(self,username,client:client,preferd_language="English"):
+        """
+        Initializes the ChatApp window.
+        """
         super().__init__()
         self.setWindowTitle("Chat App")
         self.resize(400, 600)
+        self.setWindowIcon(QIcon("icons/chat_icon.ico"))
         self.translator = Translator()
         self.messages = []
         self.username=username
@@ -237,24 +281,31 @@ class ChatApp(QMainWindow):
         self.input_field.installEventFilter(self)
         self.send_button.installEventFilter(self)
 
-        threading.Thread(target=self.recive_message, daemon=True).start()
+        threading.Thread(target=self.receive_message, daemon=True).start()
     
     
-    def recive_message(self):
+    def receive_message(self):
+        '''Starts listening for incoming messages and processes them'''
+
         def handle_message(message):
             print(message)
             sender = message.split(":")[0]
-            message = message.split(":",1)[1]
+            message = message.split(":", 1)[1]
             print(sender)
             print(message)
-            message=self.translator.translate(message,languages[self.preferd_language])
+
+            # Translate the message to user's preferred language
+            message = self.translator.translate(message, languages[self.preferd_language])
+            
             chat_message = ChatMessage(message, sender)
-            # צריך להריץ את הצגת ההודעה בthread הראשי של Qt
-            self.display_message_safe(chat_message)
-        
-        self.client.get_msg(handle_message)
+            self.display_message_safe(chat_message)  # Safely update the GUI with the message
+
+        self.client.get_msg(handle_message)  # Start listening with the callback
 
     def create_language_menu(self):
+        """
+        Creates a menu to change the display language of the chat.
+        """
         menu = QMenu(self.language_button)
         for language in languages:
             action = QAction(language, self)
@@ -264,26 +315,57 @@ class ChatApp(QMainWindow):
         return menu
 
     def select_language(self, language):
+        """
+        Changes the display language and translates existing messages.
+        """
         self.language_button.setText(language)
         self.preferd_language = language
-        self.translate_all_messages(language)
-        
-    
-    def translate_all_messages(self,language):
-        for  message in self.messages:
-                if message[1] != language:
-                    print(message[0].text())
-                    sender = message[0].text().split(":",1)[0] if message[2] == 1 else None
-                    translated_text=self.translator.translate(message[0].text().split(":",1)[1],languages[language]) if sender else self.translator.translate(message[0].text(),languages[language]) 
-                    if message[2] == 1:
-                        message[0].setText(sender+":"+translated_text)
-                        self.messages[self.messages.index(message)] = (message[0],language,1)
+        self._translate_all_messages_threaded(language) # Call the threaded translation
+
+    def _translate_all_messages_threaded(self, language):
+        """
+        Translates all displayed messages to the selected language in a separate thread.
+        """
+        def translate_task():
+            updated_messages = []
+            for message_widget, current_language, sender_flag in self.messages:
+                if current_language != language:
+                    original_text = message_widget.text()
+                    translated_text = ""
+                    if sender_flag == 1 and ":" in original_text:
+                        sender, content = original_text.split(":", 1)
+                        translated_text = self.translator.translate(content.strip(), languages[language])
+                        updated_messages.append((message_widget, language, sender_flag, f"{sender}:{translated_text}"))
                     else:
-                        message[0].setText(translated_text)
-                        self.messages[self.messages.index(message)] = (message[0],language,0)
+                        translated_text = self.translator.translate(original_text, languages[language])
+                        updated_messages.append((message_widget, language, sender_flag, translated_text))
+                else:
+                    updated_messages.append((message_widget, current_language, sender_flag, original_text))
+
+            QMetaObject.invokeMethod(self, "_update_ui_with_translated_messages",
+                                    Qt.QueuedConnection,
+                                    Q_ARG(object, updated_messages))
+        threading.Thread(target=translate_task, daemon=True).start()
+
+    @pyqtSlot(object)
+    def _update_ui_with_translated_messages(self, updated_messages):
+        """
+        Updates the UI with the translated messages.
+        """
+        self.chat_layout = QVBoxLayout() # Recreate layout to ensure correct order
+        for widget, lang, sender, text in updated_messages:
+            widget.setText(text)
+            self.messages[self.messages.index((widget,self.messages[updated_messages.index((widget,lang,sender,text))][1],self.messages[updated_messages.index((widget,lang,sender,text))][2]))] = (widget,lang,sender) # Update language
+            self.chat_layout.addWidget(widget.parentWidget()) # Add the message widget
+        self.scroll_area_widget.setLayout(self.chat_layout)
+        self.scroll_area.ensureWidgetVisible(self.scroll_area_widget)
+
                     
     
     def send_message(self):
+        """
+        Sends the message to the server and displays it in the chat.
+        """
         message_content = self.input_field.toPlainText().strip()
         if message_content:
             message = ChatMessage(content=message_content)
@@ -292,9 +374,8 @@ class ChatApp(QMainWindow):
             self.input_field.clear()
 
     def display_message_safe(self, message):
-        # Qt לא מאפשר עדכון UI מthread משני
-        # לכן נשתמש ב-invokeMethod כדי לעדכן את ה-UI בthread הראשי
-        from PyQt5.QtCore import QMetaObject, Qt, Q_ARG, pyqtSlot
+        '''Safely invokes GUI update from a non-GUI thread'''
+        # Using invokeMethod to run display_message on the main Qt thread
         QMetaObject.invokeMethod(self, "display_message", 
                             Qt.QueuedConnection,
                             Q_ARG(ChatMessage, message),
@@ -302,7 +383,9 @@ class ChatApp(QMainWindow):
     
     @pyqtSlot(ChatMessage,int)
     def display_message(self, message,sender):
-        # message label
+        '''Updates the chat UI with the received or sent message'''
+        
+        # Create the widget that represents the message in the UI
         message_label = QLabel(message.format())
         self.messages.append((message_label,None,sender))
         time_label = QLabel(message.get_send_time())
@@ -338,16 +421,19 @@ class ChatApp(QMainWindow):
         message_widget = QWidget()
         message_widget.setLayout(message_layout)
         
+        # Add the message widget to the chat layout
         self.chat_layout.addWidget(message_widget)
         
     
 
     def keyPressEvent(self, event):
+        """Sending a nessage when the user press the Enter key."""
         # enter
         if event.key() == Qt.Key_Return:
             self.send_message()
 
     def eventFilter(self, obj, event):
+        """Starting a new line when the user presses Shift + Enter."""
         if event.type() == event.KeyPress and event.key() == Qt.Key_Return:
             if event.modifiers() == Qt.ShiftModifier:
                 return super().eventFilter(obj, event)

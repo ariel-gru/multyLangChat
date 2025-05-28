@@ -19,6 +19,9 @@ class ChatAppDB:
         self._create_tables()
 
     def _create_tables(self):
+        """
+        Creates the 'users' table if it doesn't exist.
+        """
         
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
@@ -32,7 +35,10 @@ class ChatAppDB:
         self.conn.commit()
 
     def save_user(self, username, password , preferred_language='English'):
-       
+        """
+        Saves a new user to the database with the given username, password, and preferred language.
+        """
+
         salt, encrypted_password = HashPasswords.encrypt_password(password)
         try:
             self.cursor.execute("""
@@ -47,7 +53,9 @@ class ChatAppDB:
             return False
 
     def check_user(self, username, password):
-       
+        """
+        Checks if the given username and password match a user in the database.
+        """
         self.cursor.execute("""
         SELECT password_hash, salt FROM users WHERE username = ?
         """, (username,))
@@ -59,7 +67,9 @@ class ChatAppDB:
         return False
 
     def change_language(self, username, new_language):
-        
+        """
+        Updates the preferred language for the user with the given username.
+        """
         self.cursor.execute("""
         UPDATE users SET preferred_language = ? WHERE username = ?
         """, (new_language, username))
@@ -67,26 +77,32 @@ class ChatAppDB:
         print(f"Preferred language for user with username '{username}' updated to '{new_language}'.")
     
     def get_user_id(self, username):
-        
+        """
+        Returns the user ID for the given username.
+        """
         self.cursor.execute("""
         SELECT id FROM users WHERE username = ?
         """, (username,))
         result = self.cursor.fetchone()
         if result:
-            return result[0]  #בוחר את הראשון כי tuple
+            return result[0]  #choose the first one because its a tuple
         return None  
     def get_user_language(self, username):
-        
+        """
+        Returns the preferred language for the given username.
+        """
         self.cursor.execute("""
         SELECT preferred_language FROM users WHERE username = ?
         """, (username,))
         result = self.cursor.fetchone()
         if result:
-            return result[0]  #בוחר את הראשון כי tuple
+            return result[0]  #choose the first one because its a tuple
         return None  
     
     def close(self):
-       
+        """
+        Closes the database connection.
+        """
         self.conn.close()
 
 

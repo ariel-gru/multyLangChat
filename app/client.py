@@ -1,6 +1,4 @@
 import socket
-import threading
-import chatappGUI
 from encryption import Cipher
 from nonce import NONCE
 #I haven't started working on the server and the client yet.
@@ -50,14 +48,17 @@ class client:
         print(3)
         return True
     def get_msg(self, message_callback):
+        '''Receives encrypted messages from the server, decrypts them,
+        and passes the result to a callback function (handle_message)'''
+
         try:
             while True:
-                data = self.client_socket.recv(1024)
+                data = self.client_socket.recv(1024) # Receive encrypted data from server
                 if not data:
                     break
-                msg = self.cipher.aes_decrypt(data)
+                msg = self.cipher.aes_decrypt(data) # Decrypt the message
                 if msg:
-                    message_callback(msg)
+                    message_callback(msg) # Pass decrypted message to the handle_message function on the GUI
         except Exception as e:
             print(f"Connection lost: {e}")
         

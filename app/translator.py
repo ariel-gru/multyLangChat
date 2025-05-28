@@ -10,45 +10,38 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class Translator:
     def __init__(self):
+        '''
+        Initialize a headless Chrome browser
+        '''
         chrome_options = Options()
         chrome_options.add_argument("--headless")
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
-    #Spliting the text to make the translation faster in case of a long sentence.
-    def split_translate(self, text, target_language):
+    
+    def translate(self, text, target_language):
         """
-        Spliting the text.
+        Translates the given text (any length) to the target language using Google Translate and Selenium.
+        Automatically splits into 1600-character chunks.
         """
-        chunks = []
-        translated_text = ""
-        for i in range(0, len(text), 1600):
-            chunks.append(text[i:i+1600])
-        for chunk in chunks:
-                translated_text += self.translate(chunk, target_language)
-        return translated_text
+        translated_chunks = []
 
-    def translate(self, text_to_translate, target_language):
-        """
-        Translate the given text to the target language using Google Translate.
-        """
-        if len(text_to_translate) > 1600:
-            self.split_translate(text_to_translate,target_language)
-        #URL matching
-        text_to_translate = urllib.parse.quote(text_to_translate)
-        
-        # google translate url pattern
-        template = f"https://translate.google.com/?sl=auto&tl={target_language}&text={text_to_translate}"
-        
-        self.driver.get(template)
-        
-        try:
-            translated_text_element = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "lRu31"))
-            )
-            return translated_text_element.text
-        except TimeoutException:
-            print("Timed out waiting for translation")
-            return ""
+        for i in range(0, len(text), 1600):
+            chunk = text[i:i+1600]
+            encoded_chunk = urllib.parse.quote(chunk)
+            url = f"https://translate.google.com/?sl=auto&tl={target_language}&text={encoded_chunk}"
+
+            self.driver.get(url)
+
+            try:
+                translated_element = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.CLASS_NAME, "lRu31"))
+                )
+                translated_chunks.append(translated_element.text)
+            except TimeoutException:
+                print(f"Timeout on chunk: {chunk[:30]}...")
+                translated_chunks.append("")
+
+        return ''.join(translated_chunks)
 
     def quit(self):
         """
